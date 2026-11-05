@@ -1,4 +1,5 @@
 """Lazy Supabase client; importing this module performs no network operations."""
+
 from supabase import Client, create_client
 
 from aeies.config import Settings

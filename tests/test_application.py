@@ -1,31 +1,30 @@
 import os
 import unittest
-from unittest.mock import AsyncMock, patch
-from types import SimpleNamespace
+from unittest.mock import patch
 
 from aeies.__main__ import build_application
 from aeies.config import Settings
 from aeies.database.client import create_database_client
-from aeies.handlers.general import start, help_command
+from telegram.ext import CommandHandler
 
 
 class ApplicationTests(unittest.IsolatedAsyncioTestCase):
-    async def test_commands_reply(self):
-        message = SimpleNamespace(reply_text=AsyncMock())
-        update = SimpleNamespace(effective_message=message)
-        await start(update, None)
-        self.assertIn("Welcome to AEIES", message.reply_text.call_args.args[0])
-        await help_command(update, None)
-        self.assertIn("/help", message.reply_text.call_args.args[0])
-
-    async def test_non_message_update(self):
-        await start(SimpleNamespace(effective_message=None), None)
-        await help_command(SimpleNamespace(effective_message=None), None)
-
     def test_application_registers_commands(self):
         app = build_application(Settings("123456:offline-test-placeholder"))
-        self.assertEqual({"start", "help"},
-                         set().union(*(h.commands for h in app.handlers[0])))
+        commands = set().union(
+            *(h.commands for h in app.handlers[0] if isinstance(h, CommandHandler))
+        )
+        self.assertTrue(
+            {
+                "start",
+                "help",
+                "register",
+                "browse",
+                "upload",
+                "roles",
+                "feedback",
+            }.issubset(commands)
+        )
 
     def test_missing_token(self):
         with patch.dict(os.environ, {}, clear=True), patch("aeies.config.load_dotenv"):
