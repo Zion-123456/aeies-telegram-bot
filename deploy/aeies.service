@@ -1,0 +1,27 @@
+[Unit]
+Description=AEIES Telegram polling bot
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=aeies
+Group=aeies
+WorkingDirectory=/opt/aeies
+EnvironmentFile=/etc/aeies/runtime.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/aeies/.venv/bin/python -m aeies
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=90
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/aeies
+
+[Install]
+WantedBy=multi-user.target

@@ -13,9 +13,10 @@ tracking, scoped administrator roles, resource and course management, audit logs
 and basic analytics. Automated tests use real local PostgreSQL and mocked Telegram
 APIs. These tests do **not** verify live Telegram delivery or a live Supabase project.
 
-**Account setup remains blocked:** no Supabase integration or credentials were
-exposed to the implementation session. No Supabase organisation was inspected and
-no remote project was created. No Formz or Forge project was accessed or changed.
+**Live access remains blocked:** the user has confirmed the dedicated Zion 2 project
+`vvfoofamchxatwyttypp` in `eu-west-2` and authorized deployment. No Supabase tools or
+credentials are exposed in this execution session, so remote health, schemas and
+advisors have not been independently verified. No Formz or Forge project was accessed or changed.
 No paid resources were created. Do not treat this repository as a completed live
 deployment until the account and integration checks below have succeeded.
 
@@ -74,12 +75,15 @@ with Python 3.12 and PostgreSQL 17, not on a physical Windows laptop.
 
 ## Supabase configuration and migrations
 
-1. Connect the intended Supabase account and inspect its organisations, project
-   capacity, and billing before provisioning anything. Do not use the account
-   containing Formz. Do not reuse or alter Formz or Forge.
-2. Create a **new** project named `AEIES-Academic-Assistant`, preferring a free
-   `eu-west-1` project. If unavailable, document a suitable available region. Stop
-   for approval if any subscription or charge is required.
+1. Use the confirmed dedicated AEIES project `vvfoofamchxatwyttypp` in the Zion 2
+   organisation (`zhbulwchngsxiflikoze`), region `eu-west-2`. Do not create another
+   project or access Formz or Forge.
+2. Inspect existing schemas, roles, migrations, event triggers and advisors before
+   deployment. Preserve all managed Supabase schemas. Inspect dependencies of
+   `public.rls_auto_enable()` and remove unnecessary API execution grants only
+   after verifying the function and event-trigger identity. Repeat security and
+   performance advisors afterwards. No remote inspection or privilege change has
+   been performed in this session. Obtain approval before incurring any charge.
 3. Confirm healthy PostgreSQL connectivity. Copy the project connection details
    only into secure local configuration. Use the dashboard's pooler connection
    details when direct IPv6 access is unavailable; use `sslmode=verify-full`
@@ -88,7 +92,7 @@ with Python 3.12 and PostgreSQL 17, not on a physical Windows laptop.
    certificate if required. Never disable TLS
    verification to work around a trust error. Do not put a connection string on a
    command line, where it may appear in process listings.
-4. Set `MIGRATION_DATABASE_URL` to the new project's privileged database connection.
+4. Set `MIGRATION_DATABASE_URL` to this project's privileged database connection.
    From the repository root, run:
 
    ```powershell
@@ -351,3 +355,11 @@ The same polling process can later move to an always-on machine with durable
 original storage; decide hosting and cost separately. Webhooks are not required.
 Semantic search, AI summaries, recommendations, ZIP downloads, question generation,
 and grounded AI answers are future versions and are not implemented or funded.
+
+See [deployment instructions](deploy/README.md) for the systemd service template.
+GitHub Actions runs PostgreSQL-backed tests, lint, formatting, dependency checks
+and vulnerability scanning; its first remote run is not assumed successful merely
+because the workflow is committed. Migration startup requires
+`MIGRATION_DATABASE_URL` explicitly and never falls back to runtime credentials.
+Cached Telegram update responses are bound to the originating user; old cache
+entries without that binding fail closed and ask the user to repeat the action.
