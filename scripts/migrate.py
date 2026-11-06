@@ -15,6 +15,19 @@ from aeies.database.queries import connect
 def migrate(url):
     with connect(url, connect_timeout=10) as connection:
         connection.execute("SELECT pg_advisory_xact_lock(887741001)")
+        if connection.execute("SELECT to_regnamespace('aeies')").fetchone()[0]:
+            if not connection.execute(
+                "SELECT to_regclass('public.aeies_migrations')"
+            ).fetchone()[0]:
+                raise ValueError(
+                    "Existing aeies schema requires verified migration adoption first."
+                )
+            if not connection.execute(
+                "SELECT 1 FROM public.aeies_migrations WHERE name='001_initial.sql'"
+            ).fetchone():
+                raise ValueError(
+                    "Existing aeies schema has incomplete migration history; reconcile before continuing."
+                )
         connection.execute(
             "CREATE TABLE IF NOT EXISTS public.aeies_migrations "
             "(name text PRIMARY KEY, sha256 text NOT NULL, applied_at timestamptz DEFAULT now())"

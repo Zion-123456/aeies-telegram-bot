@@ -22,6 +22,8 @@ def world(tmp_path):
         "localhost",
     ):
         pytest.fail("Integration fixture requires a loopback database named aeies_test")
+    if info.get("hostaddr") not in (None, "127.0.0.1", "::1"):
+        pytest.fail("Integration fixtures reject non-loopback hostaddr overrides")
     migrate(url)
     db = Database(url)
     with db.transaction() as c:
