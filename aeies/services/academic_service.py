@@ -117,7 +117,12 @@ class AcademicService:
                 (update_id,),
             )
             if previous:
-                return previous["response"]
+                cached = previous["response"]
+                if cached.get("_actor") != actor:
+                    raise Denied(
+                        "This update cannot be replayed. Please repeat your action."
+                    )
+                return cached["result"]
             c.execute(
                 "INSERT INTO profiles(id) VALUES (%s) ON CONFLICT DO NOTHING", (actor,)
             )
@@ -173,7 +178,7 @@ class AcademicService:
             )
             c.execute(
                 "INSERT INTO processed_updates(update_id,response) VALUES (%s,%s)",
-                (update_id, Jsonb(result)),
+                (update_id, Jsonb({"_actor": actor, "result": result})),
             )
             return result
 

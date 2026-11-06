@@ -24,6 +24,13 @@ async def initialize(application):
 
     def check():
         with service.database.transaction() as c:
+            role = c.execute(
+                "SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user"
+            ).fetchone()
+            if role["rolsuper"] or role["rolbypassrls"]:
+                raise ValueError(
+                    "Use a dedicated non-privileged backend login for the bot."
+                )
             c.execute("SELECT id FROM profiles LIMIT 1")
 
     await asyncio.to_thread(check)

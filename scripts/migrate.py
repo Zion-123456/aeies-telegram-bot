@@ -42,7 +42,7 @@ def migrate(url):
 
 if __name__ == "__main__":
     load_dotenv()
-    url = os.getenv("MIGRATION_DATABASE_URL") or os.getenv("DATABASE_URL")
+    url = os.getenv("MIGRATION_DATABASE_URL")
     if not url:
         sys.exit("Set MIGRATION_DATABASE_URL securely before applying migrations.")
     try:

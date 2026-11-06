@@ -8,6 +8,7 @@ from telegram.request import BaseRequest
 
 from aeies.__main__ import build_application
 from aeies.config import Settings
+from psycopg.conninfo import make_conninfo
 
 
 class TelegramAPI(BaseRequest):
@@ -81,7 +82,7 @@ async def test_polling_start_stop_restart(world):
         app = build_application(
             Settings(
                 "123456:mock-test-token",
-                database_url=world.url,
+                database_url=make_conninfo(world.url, options="-c role=aeies_backend"),
                 backup_directory=str(world.directory),
             ),
             request=api,

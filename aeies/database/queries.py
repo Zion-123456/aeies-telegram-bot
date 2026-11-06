@@ -18,7 +18,7 @@ class Duplicate(ValueError):
 def connect(url, **kwargs):
     """Require authenticated TLS for remote databases; permit local test sockets."""
     info = conninfo_to_dict(url)
-    host = info.get("host", "")
+    host = info.get("hostaddr") or info.get("host", "")
     if host not in ("", "localhost", "127.0.0.1", "::1") and not host.startswith("/"):
         if info.get("sslmode", "verify-full") != "verify-full":
             raise ValueError(

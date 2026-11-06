@@ -88,6 +88,25 @@ def verify(url):
             "SELECT has_table_privilege('aeies_backend','aeies.audit_logs','UPDATE'),has_table_privilege('aeies_backend','aeies.audit_logs','DELETE')"
         ).fetchone() != (False, False):
             raise ValueError("Audit-log write protection is missing.")
+        for role in ("anon", "authenticated", "service_role"):
+            if c.execute("SELECT 1 FROM pg_roles WHERE rolname=%s", (role,)).fetchone():
+                if c.execute(
+                    "SELECT has_schema_privilege(%s,'aeies','USAGE')", (role,)
+                ).fetchone()[0]:
+                    raise ValueError("An API role has private-schema access.")
+                for table in TABLES:
+                    if c.execute(
+                        "SELECT has_table_privilege(%s,%s,'SELECT,INSERT,UPDATE,DELETE')",
+                        (role, "aeies." + table),
+                    ).fetchone()[0]:
+                        raise ValueError(
+                            "An API role has application-table privileges."
+                        )
+        runtime = c.execute(
+            "SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname='aeies_runtime'"
+        ).fetchone()
+        if runtime and any(runtime):
+            raise ValueError("The runtime login has excessive database privileges.")
 
 
 if __name__ == "__main__":
