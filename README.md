@@ -93,6 +93,10 @@ with Python 3.12 and PostgreSQL 17, not on a physical Windows laptop.
    verification to work around a trust error. Do not put a connection string on a
    command line, where it may appear in process listings.
 4. Set `MIGRATION_DATABASE_URL` to this project's privileged database connection.
+   The user has since confirmed integration-applied 001/002. **Do not replay them.**
+   First follow [migration adoption](deploy/MIGRATION_ADOPTION.md) to compare the
+   live objects and reconcile the repository journal. Current live equivalence
+   and 003/004/005 deployment remain blocked by unavailable integration access.
    From the repository root, run:
 
    ```powershell

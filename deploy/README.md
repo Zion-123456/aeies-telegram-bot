@@ -20,6 +20,8 @@ the deployed checkout. Keep required database CA certificates in a read-only pat
 Deploy only to the user-approved Supabase project `vvfoofamchxatwyttypp` (Zion 2,
 eu-west-2). Inspect the remote schema and `public.rls_auto_enable()` dependencies
 before making changes. Run immutable migrations using a separately secured
+connection only after reconciling the integration-applied 001/002 as described in
+`deploy/MIGRATION_ADOPTION.md`. Do not assume an empty application schema. Use
 `MIGRATION_DATABASE_URL`, verify the schema, and provision `aeies_runtime` with
 the existing scripts. Do not create another project or modify Formz or Forge.
 

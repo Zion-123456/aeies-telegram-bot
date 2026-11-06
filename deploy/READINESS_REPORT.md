@@ -1,104 +1,154 @@
-# Deployment readiness audit — 6 November 2026
+# Deployment readiness — 6 November 2026
 
 ## Repository
 
-PASS: started with a clean checkout of main at
-`fbf3a85c10b5da777e7b48b8366b3433c9c91d4e`, fetched remote main, and reproduced
-the original 51 tests. Changes are on `feature/deployment-readiness`; no merge
-into main is authorized or performed. The existing test container was stopped
-after environment restoration and was restarted before the successful baseline.
+PASS — continued clean `feature/deployment-readiness` at `a714ef4`, fetched remote
+branches, and preserved existing work. Main remains at
+`fbf3a85c10b5da777e7b48b8366b3433c9c91d4e`; no merge/reset/force-push performed.
+This report is committed with the changes described below; use `git log -1` for
+the resulting documentation commit rather than a self-referential commit hash.
 
-## Defects and fixes
+## Live Supabase state
 
-- Remote PostgreSQL `hostaddr` could bypass the TLS guard when `host` was empty
-  or local. Address selection now includes `hostaddr`; regression coverage added.
-- Cached update responses were keyed only by update ID. Bind cached responses to
-  the originating actor and reject cross-user or legacy unbound replays. Actual
-  Telegram update IDs come from the API; this strengthens the service boundary.
-- Migration CLI could silently use DATABASE_URL. It now requires the explicitly
-  privileged MIGRATION_DATABASE_URL and has a subprocess regression test.
-- Runtime startup accepted superuser/BYPASSRLS connections. These now fail with
-  a safe configuration error; polling tests use a restricted backend role.
-- Schema verification did not check effective API-role schema/table access or
-  excessive runtime-role privileges. Those checks and a negative access-grant
-  regression test were added. This is not a complete role-membership audit.
-- Vulnerability scan reported python-dotenv 1.2.1 (PYSEC-2026-2270) and pytest
-  8.4.2 (PYSEC-2026-1845). Updated to 1.2.2 and 9.0.3, respectively, with
-  pytest-asyncio 1.3.0 for compatibility. No advisory exceptions were suppressed.
+NOT TESTED — independent reinspection in this session. The user supplied verified
+external evidence for project `vvfoofamchxatwyttypp`, eu-west-2:
 
-## Validation results
+- 001_initial and 002_backend_role applied through the integration.
+- 16 private aeies tables with RLS and reference data seeded.
+- PUBLIC/anon/authenticated EXECUTE revoked on public.rls_auto_enable(), with its
+  event trigger preserved.
+- Security advisor zero findings; performance advisor 17 unindexed foreign keys
+  and 7 unused-index notices.
 
-| Check | Result |
+These are the latest known live facts, not claims of an empty database. They were
+not repeated, reverted, or re-applied here. The bot and verification code require
+003's audit details column and 004's MP4 constraint, so this partial live schema
+must not be treated as application-ready.
+
+BLOCKED — live reconciliation, 003/004/005 application, runtime login inspection,
+security/performance advisor reruns and remote RLS verification. No Supabase tools
+are exposed and no MIGRATION_DATABASE_URL, DATABASE_URL, SUPABASE_ACCESS_TOKEN or
+TELEGRAM_BOT_TOKEN is present. No new project, paid service or credential rotation
+was performed. Formz, Forge and managed infrastructure schemas were untouched.
+
+## Reconciliation evidence and changes
+
+PASS — the runner records exact SQL-file SHA-256 hashes in public.aeies_migrations,
+which is separate from Supabase's migration history. It now refuses an existing
+application schema without an initial repository journal entry before attempting
+application migrations. It does not guess adoption or re-execute 001/002.
+
+PASS — added scripts/adopt_migrations.py and deploy/MIGRATION_ADOPTION.md. Adoption
+builds a reference from the exact committed 001/002 in an empty local
+`aeies_reference` database, inside a transaction that always rolls back. It checks
+Supabase history names and compares relations, columns/defaults, sequences,
+constraints, indexes, policies, custom triggers/routines, grants, reference seeds
+and backend-role flags/inheritance. Target objects must belong to the connected
+migration identity; different owners cause refusal. Only an equivalent target receives 001/002
+checksums in a transaction. The target's application DDL/data and Supabase history
+are not rewritten. Object owners, operational sequence positions and application
+rows are deliberately not compared; owners require separate live inspection.
+
+PASS — fresh installation, repeat adoption, continuation through later migrations,
+and fail-closed refusal of column, seed, policy, history, grant and sequence drift
+were tested against disposable PostgreSQL databases. Refused adoption leaves no
+repository journal, and reference DDL is rolled back. Existing migration files
+001–004 are unchanged. The evidence proves local catalog equivalence checks,
+not that remote reconciliation has happened or that remote SQL bytes matched.
+
+BLOCKED — actual live equivalence and journal reconciliation. If migration names,
+owner privileges, defaults or definitions differ, inspect and document the
+specific discrepancy; never mark unverified migrations as adopted.
+
+## Index investigation
+
+PASS — local baseline inspection found 20 foreign keys without a full valid
+prefix index. Three were already partly covered by partial indexes. This is a
+stricter check than accepting partial coverage and is consistent with needing
+17 additional indexes, but the live advisor's exact list remains uninspected.
+
+PASS — new migration 005_foreign_key_indexes.sql adds 17 indexes and expands the
+three existing partial indexes to full indexes with the same names/keys. This
+avoids redundant full-prefix indexes and covers archived/inactive child rows.
+SQL comments and MIGRATION_ADOPTION.md explain every access pattern: academic
+profile aggregates, scope lookup, course filters, category/session/uploader queries,
+reverse bookmarks/reports, feedback student/assignee queues, actor audit and
+student delivery history. Existing primary-key and other suitable index prefixes
+are reused. No indexes were removed solely because a new database reports them
+unused. Index replacement requires a maintenance window before live execution.
+
+PASS — all local application foreign keys have a full valid prefix index after
+005. BLOCKED — live index deployment and performance-advisor rerun. No claim is
+made that live notices have cleared.
+
+## Security and runtime identity
+
+PASS — local tests verify private-schema RLS/API-role exclusion, restricted
+runtime-login operation, audit UPDATE/DELETE denial, server-side administrative
+scope checks, cross-user private-data isolation, actor-bound replay checks,
+verified-TLS configuration, and rejection of superuser/BYPASSRLS bot connections.
+The runtime backend is trusted with application-wide access; Telegram user
+permissions are enforced by services, not by imaginary Supabase Auth identities.
+
+NOT TESTED — live owner-role inheritance and complete function/sequence grants,
+remote runtime identity, TLS handshake and exposed Data API schema configuration.
+BLOCKED — these need the remote connection/integration. Existing credentials were
+not inspected for values, changed or rotated. Previous readiness fixes remain.
+
+## Executed checks
+
+| Check | Status and exact result |
 | --- | --- |
-| Original full suite | PASS — 51 tests |
-| Final full pytest suite | PASS — 57 tests, no skips, 28.62 seconds |
-| Focused application/readiness suite | PASS — 10 tests, 2.27 seconds |
-| Local schema verifier | PASS — 16 tables, RLS policies, indexes, uniqueness, audit protections, checksums and API-role checks |
-| Fresh database migration/runtime login | PASS — exercised by full suite, including Supabase-style default grants |
-| PDF, DOCX, MP4 originals and mocked delivery | PASS — full-suite coverage |
-| Scoped authorization, feedback, bookmarks, isolation, rollback | PASS — full-suite coverage |
-| Mocked polling start/stop/restart | PASS — full-suite coverage |
-| Ruff lint and formatting | PASS — 25 Python files formatted, no lint findings |
-| pip check | PASS — no broken requirements |
-| pip-audit -r requirements.txt | PASS — no known vulnerabilities reported after patches |
+| Full suite including PostgreSQL and mocked Telegram | PASS — 65 passed, 0 failed/skipped, 34.93 seconds |
+| Adoption tests | PASS — matching prefix and drift/refusal cases included in full suite |
+| Fresh installation and restricted login | PASS — full-suite fresh-database coverage |
+| Registration, resources, PDF/DOCX/MP4 backups and delivery mocks | PASS — full-suite coverage |
+| Scope boundaries, RLS, feedback, bookmarks and audit rollback | PASS — full-suite coverage |
+| Cross-user isolation and update replay | PASS — full-suite coverage |
+| Polling lifecycle and restart recovery | PASS — full-suite mocked API coverage |
+| Foreign-key prefix index coverage | PASS — no uncovered FK after 005 |
+| Ruff lint and formatting | PASS — 28 Python files formatted, no lint findings |
+| Dependency consistency | PASS — pip check reports no broken requirements |
+| Vulnerability audit | PASS — pip-audit reports no known vulnerabilities |
+| Immutable migrations 001–004 | PASS — no differences from starting branch |
 | git diff --check | PASS |
-| Existing migration files | PASS — unchanged |
-| GitHub Actions execution | BLOCKED/not run — manual trigger pending runner billing confirmation |
+| Real Supabase migrations/security/performance advisors | BLOCKED — no integration or connection |
+| Real Telegram sends/two-student journey | BLOCKED — no token or human test-account access |
+| Installed host/service health and graceful shutdown | NOT TESTED — no host provisioned; service template only |
+| GitHub Actions run | NOT TESTED — workflow remains manual, billing not confirmed |
 
-Full suite used PostgreSQL 17 on loopback with synthetic identities and files,
-never Supabase. Run it with a dedicated disposable aeies_test database:
+Commands used the disposable loopback aeies_test PostgreSQL database, never the
+live project. No real student information or original academic documents were
+used. An initial adoption-test failure exposed a PostgreSQL catalog type-cast
+error; it was fixed and the final suite passed without weakening assertions.
 
-```sh
-TEST_DATABASE_URL=postgresql://postgres@127.0.0.1:55432/aeies_test PTB_TIMEDELTA=1 .venv/bin/python -m pytest -q
-```
+## Telegram and final deployment decision
 
-## Live infrastructure status
+BLOCKED — production deployment approval. Do not launch against the partially
+migrated live schema. No live Telegram functionality or end-to-end success is
+claimed from mocked tests. No polling worker or paid host was deployed here.
 
-BLOCKED: user-confirmed project `vvfoofamchxatwyttypp`, AEIES Academic Assistant,
-Zion 2 organisation `zhbulwchngsxiflikoze`, eu-west-2. The user authorized this
-project and prohibited creating another. No Supabase tools are exposed in this
-session and no access token, migration connection, runtime connection or Telegram
-bot token is configured. Platform status also reports no secret bindings or
-runtime variables. User-reported ACTIVE_HEALTHY has not been independently checked.
+1. Expose the integration for the approved project or securely configure its
+   privileged MIGRATION_DATABASE_URL. Never paste secrets into chat.
+2. Inspect actual history, schema, owners, roles, extensions and preserved event
+   trigger. Follow MIGRATION_ADOPTION.md; stop on any equivalence discrepancy.
+3. After verified adoption, run scripts/migrate.py and scripts/verify_database.py
+   with migration credentials; independently verify 003/004/005 and rerun advisors.
+4. Inspect existing runtime identity before provisioning anything. Use the
+   existing provisioning script only if the login is absent; do not rotate or
+   overwrite existing credentials. Check effective ownership/inheritance and
+   least-required privileges. Configure a separate verified-TLS DATABASE_URL.
+5. Configure TELEGRAM_BOT_TOKEN securely in the local .env or host secret store;
+   migration credentials must not be present in the normal bot process.
+6. Use human-controlled synthetic accounts for actual registration, scoped upload,
+   file receipt by two students, bookmarks, requests, feedback resolution, audit
+   and analytics checks; restart and verify persisted state and private-data
+   isolation. Test failed as well as successful delivery.
+7. Review host settings before using deploy/aeies.service. One continuous worker,
+   durable originals, restart limits and journal monitoring are documented. No
+   purchase, paid provisioning, merge to main or billed CI run is authorized here.
 
-No remote schema inspection, migration application, runtime-login provisioning,
-`public.rls_auto_enable()` dependency inspection or privilege change, or security
-and performance advisor run was possible. These are BLOCKED, not PASS. The event
-trigger must be inspected before revoking unnecessary function execution rights.
-All Supabase-managed schemas, Formz and Forge remain untouched.
-
-Actual Telegram registration, upload/delivery, two-student journey, bookmark,
-feedback resolution, analytics, and restart checks are BLOCKED. Mocked successful
-and failed sends do not establish real Telegram delivery. Existing tests preserve
-the product's cross-department academic discovery; administrative mutations and
-private feedback/profile access remain scoped. No new student department-only
-restriction was invented without a product requirement.
-
-## Deployment and remaining actions
-
-Prepared, not deployed: systemd unit and operating instructions in deploy/README.md.
-Use one continuously running polling worker with persistent original-file storage;
-no serverless polling function or paid host was created. No charges were incurred
-by provisioning in this task. GitHub Actions remains manual until billing is known.
-
-1. Expose the Supabase integration for the confirmed project, or securely bind its
-   privileged MIGRATION_DATABASE_URL. Never paste credentials into chat.
-2. Inspect the remote schema, roles, extensions, event triggers and advisors, apply
-   immutable migrations transactionally, verify, and provision the dedicated login.
-3. Securely configure runtime DATABASE_URL (verified TLS) and a dedicated
-   TELEGRAM_BOT_TOKEN, excluding migration credentials from the bot process.
-4. Complete the real two-student Telegram journey with human-controlled test
-   accounts and a non-sensitive sample file, then verify persistence after restart.
-5. Review the feature branch and host configuration, confirm costs before any
-   hosting purchase or billed CI run, and deploy only after live checks succeed.
-
-Environment startup instructions were updated in the saved configuration draft
-to use the approved existing project. That save does not apply runtime settings,
-publish an environment, or establish deployment readiness.
-
-## Windows startup
-
-After securely setting DATABASE_URL and TELEGRAM_BOT_TOKEN in local .env:
+Windows startup after schema readiness and secure local configuration:
 
 ```powershell
 py -m venv .venv
@@ -107,6 +157,6 @@ pip install -r requirements.txt
 python -m aeies
 ```
 
-If .env does not exist, copy .env.example first without overwriting existing
-configuration. The laptop must remain awake and online. These commands are
-documented; a real Windows runtime and live bot were not tested in this session.
+Copy .env.example only if .env does not already exist, then enter the dedicated
+runtime connection and BotFather token locally. Keep the laptop awake/online.
+Windows execution and a real deployed service remain NOT TESTED.
